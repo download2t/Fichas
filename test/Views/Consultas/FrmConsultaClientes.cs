@@ -10,17 +10,46 @@ namespace test.Views.Consultas
 {
     public partial class FrmConsultaClientes : FrmConsulta
     {
-        private ClientesController clientesController = new ClientesController();
+        private CTLClientes aCTLClientes = new CTLClientes();
         FrmCadastroClientes oFormCadClientes;
         Clientes oCliente;
-        public int ClienteIdSelecionado { get; private set; }
-        public string ClienteNomeSelecionado { get; private set; }
+        private string AcessosLiberados = "CLIENTES";
+        public int IdSelecionado { get; private set; }
+        public string NomeSelecionado { get; private set; }
+        private BindingSource bindingSource = new BindingSource();
 
         public FrmConsultaClientes()
         {
             InitializeComponent();
+            LiberarAcessos(AcessosLiberados);
+            this.Controls.Add(dgv);
+            this.Resize += FrmConsulta_Resize; // Associa o evento de redimensionamento
+            DataGrid();
         }
+        public override void DataGrid()
+        {
+            dgv.RowHeadersVisible = false;
+            dgv.AutoGenerateColumns = false;
+            dgv.Columns.Clear();
 
+            dgv.Columns.AddRange(new DataGridViewTextBoxColumn[]
+            {
+                new DataGridViewTextBoxColumn { Name = "Código", HeaderText = "Código", DataPropertyName = "Id", Width = 60 },
+                new DataGridViewTextBoxColumn { Name = "Nome", HeaderText = "Nome", DataPropertyName = "Nome", Width = 200 },
+                new DataGridViewTextBoxColumn { Name = "Documento", HeaderText = "Documento", DataPropertyName = "Documento", Width = 100 },
+                new DataGridViewTextBoxColumn { Name = "Telefone", HeaderText = "Telefone", DataPropertyName = "Telefone", Width = 100 },
+                new DataGridViewTextBoxColumn { Name = "Email", HeaderText = "Email", DataPropertyName = "Email", Width = 175 },
+                new DataGridViewTextBoxColumn { Name = "Cep", HeaderText = "CEP", DataPropertyName = "Cep", Width = 80 },
+                new DataGridViewTextBoxColumn { Name = "Cidade", HeaderText = "Cidade", DataPropertyName = "Cidade", Width = 130 },
+                new DataGridViewTextBoxColumn { Name = "Bairro", HeaderText = "Bairro", DataPropertyName = "Bairro", Width = 130 },
+                new DataGridViewTextBoxColumn { Name = "Logradouro", HeaderText = "Logradouro", DataPropertyName = "Logradouro", Width = 200 },
+                new DataGridViewTextBoxColumn { Name = "Numero", HeaderText = "Número", DataPropertyName = "Numero", Width = 60 },
+                new DataGridViewTextBoxColumn { Name = "UF", HeaderText = "UF", DataPropertyName = "UF", Width = 40 }
+            });
+
+            // Calcula as proporções das colunas
+            CalcularProporcoesColunas(dgv);
+        }
         public override void Sair()
         {
             if (btnSair.Text == "Sair")
@@ -29,14 +58,16 @@ namespace test.Views.Consultas
             }
             else if (btnSair.Text == "Selecionar")
             {
-                if (listView1.SelectedItems.Count > 0)
+                if (dgv.SelectedRows.Count > 0)
                 {
-                    ClienteIdSelecionado = int.Parse(listView1.SelectedItems[0].SubItems[0].Text);
-                    ClienteNomeSelecionado = listView1.SelectedItems[0].SubItems[1].Text;
+                    DataGridViewRow selectedRow = dgv.SelectedRows[0];
+                    IdSelecionado = int.Parse(selectedRow.Cells["Código"].Value.ToString());
+                    NomeSelecionado = selectedRow.Cells["Nome"].Value.ToString();
                 }
                 this.Close();
             }
         }
+
 
         public override void SetFrmCadastro(object obj)
         {
@@ -59,8 +90,8 @@ namespace test.Views.Consultas
         public override void Incluir()
         {
             base.Incluir();
-            clientesController.Incluir();
-            CarregaLV();
+            aCTLClientes.Incluir();
+            CarregaDGV();
         }
 
         public override void Alterar()
@@ -69,11 +100,11 @@ namespace test.Views.Consultas
             int idCliente = ObterIdSelecionado();
             if (idCliente > 0)
             {
-                Clientes cliente = clientesController.BuscarClientePorId(idCliente);
+                Clientes cliente = aCTLClientes.BuscarClientePorId(idCliente);
                 if (cliente != null)
                 {
-                    clientesController.Alterar(cliente);
-                    CarregaLV();
+                    aCTLClientes.Alterar(cliente);
+                    CarregaDGV();
                 }
             }
         }
@@ -84,54 +115,64 @@ namespace test.Views.Consultas
             int idCliente = ObterIdSelecionado();
             if (idCliente > 0)
             {
-                Clientes cliente = clientesController.BuscarClientePorId(idCliente);
+                Clientes cliente = aCTLClientes.BuscarClientePorId(idCliente);
                 if (cliente != null)
                 {
-                    clientesController.Excluir(cliente);
-                    CarregaLV();
+                    aCTLClientes.Excluir(cliente);
+                    CarregaDGV();
                 }
             }
         }
 
         public override void Visualizar()
         {
-            if (listView1.SelectedItems.Count > 0)
+            if (btnSair.Text == "Selecionar")
             {
-                ListViewItem selectedItem = listView1.SelectedItems[0];
-                Clientes cliente = selectedItem.Tag as Clientes;
+                btnSair.PerformClick();
+            }
+            else if (dgv.SelectedRows.Count > 0)
+            {
+                DataGridViewRow selectedRow = dgv.SelectedRows[0];
+                int id = Convert.ToInt32(selectedRow.Cells[0].Value);
+                Clientes cliente = aCTLClientes.BuscarClientePorId((int)id);
 
                 if (cliente != null)
                 {
-                    clientesController.Visualizar(cliente);
+                    aCTLClientes.Visualizar(cliente);
                 }
             }
         }
-        private void PreencherListView(IEnumerable<Clientes> clientes)
+        private void PreencherDGV(IEnumerable<Clientes> clientes)
         {
-            listView1.Items.Clear();
+            // Limpa as linhas existentes no DataGridView
+            dgv.Rows.Clear();
 
-            foreach (Clientes cliente in clientes)
+            // Adiciona as linhas uma por uma
+            foreach (var cliente in clientes)
             {
-                ListViewItem item = new ListViewItem(Convert.ToString(cliente.Id));
-                item.SubItems.Add(cliente.Nome);
-                item.SubItems.Add(Operacao.FormatarDocumento(cliente.Documento));
-                item.SubItems.Add(Operacao.FormatarTelefone(cliente.Telefone));
-                item.SubItems.Add(cliente.Email);
-                item.SubItems.Add(Operacao.FormatarCep(cliente.Cep));
-                item.SubItems.Add(cliente.Cidade);
-                item.SubItems.Add(cliente.Bairro);
-                item.SubItems.Add(cliente.Logradouro);
-                item.SubItems.Add(cliente.Numero.ToString());
-                item.SubItems.Add(cliente.UF);
-                item.Tag = cliente;
-                listView1.Items.Add(item);
+                dgv.Rows.Add(new object[]
+                {
+            cliente.Id,
+            cliente.Nome,
+            string.IsNullOrWhiteSpace(cliente.Documento) ? "Não Cadastrado" : Operacao.FormatarDocumento(cliente.Documento),
+            Operacao.FormatarTelefone(cliente.Telefone),
+            cliente.Email,
+            Operacao.FormatarCep(cliente.Cep),
+            cliente.Cidade,
+            cliente.Bairro,
+            cliente.Logradouro,
+            cliente.Numero.ToString(),
+            cliente.UF
+                });
             }
         }
 
-        public override void CarregaLV()
+
+
+        public override void CarregaDGV()
         {
-            base.CarregaLV();
-            PreencherListView(clientesController.ListarClientes());
+            base.CarregaDGV();
+            PreencherDGV(aCTLClientes.ListarClientes());
         }
         protected override void Pesquisar()
         {
@@ -141,10 +182,10 @@ namespace test.Views.Consultas
             if (!string.IsNullOrEmpty(valorPesquisa) && !string.IsNullOrEmpty(criterioPesquisa))
             {
                 // Execute uma pesquisa na camada de controle com base no critério
-                var resultados = clientesController.PesquisarClientesPorCriterio(criterioPesquisa, valorPesquisa);
+                var resultados = aCTLClientes.PesquisarClientesPorCriterio(criterioPesquisa, valorPesquisa);
 
                 // Use o método de preenchimento para atualizar a ListView
-                PreencherListView(resultados);
+                PreencherDGV(resultados);
             }
         }
 
@@ -163,6 +204,10 @@ namespace test.Views.Consultas
             {
                 return "Documento"; // Pesquisar pelo documento
             }
+            else if (rbEmail.Checked)
+            {
+                return "Email"; // Pesquisar pelo Email
+            }
 
             return string.Empty; // Nenhum critério selecionado
         }
@@ -170,16 +215,31 @@ namespace test.Views.Consultas
         protected override void Atualizar()
         {
             base.Atualizar();
-            CarregaLV();
+            CarregaDGV();
         }
 
         private int ObterIdSelecionado()
         {
-            if (listView1.SelectedItems.Count > 0)
+            if (dgv.SelectedRows.Count > 0)
             {
-                return int.Parse(listView1.SelectedItems[0].Text);
+                return int.Parse(dgv.SelectedRows[0].Cells["Código"].Value.ToString());
             }
             return 0;
+        }
+
+        private void dgv_CellContentDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            Visualizar();
+        }
+
+        private void dgv_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            dgv.EndEdit();
+        }
+
+        private void FrmConsultaClientes_Load(object sender, EventArgs e)
+        {
+            CarregaDGV();
         }
     }
 }

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using test.Model;
 
 namespace test.Classes
 {
@@ -17,11 +15,40 @@ namespace test.Classes
         private string _senha;
         private string _status;
         private string _perfil;
+        private Setores _setor;
+        private List<PermissaoMenu> _permissoes;
+
+        public void CopyFrom(Usuarios other)
+        {
+            if (other == null) throw new ArgumentNullException(nameof(other));
+
+            Id = other.Id;
+            Nome = other.Nome;
+            Sobrenome = other.Sobrenome;
+            Email = other.Email;
+            Senha = other.Senha;
+            Usuario = other.Usuario;
+            Perfil = other.Perfil;
+            Status = other.Status;
+            DataCadastro = other.DataCadastro;
+            DataNascimento = other.DataNascimento;
+            Setor = other.Setor; // Certifique-se de que Setor é copiado corretamente se for um objeto complexo
+        }
 
         public string Nome
         {
             get { return _nome; }
             set { _nome = value; }
+        }
+        public Setores Setor
+        {
+            get { return _setor; }
+            set { _setor = value; }
+        }
+        public List<PermissaoMenu> Permissoes
+        {
+            get { return _permissoes; }
+            set { _permissoes = value; }
         }
 
         public string Sobrenome
@@ -74,7 +101,6 @@ namespace test.Classes
 
         public Usuarios() : base()
         {
-            Id = 0;
             _nome = "";
             _sobrenome = "";
             _email = "";
@@ -84,11 +110,13 @@ namespace test.Classes
             _senha = "";
             _status = "";
             _perfil = "";
+            _permissoes = new List<PermissaoMenu>();
+            _setor = new Setores();
         }
 
-        public Usuarios(int id, string nome, string sobrenome, string email, string usuario, DateTime datacad, DateTime datanasc, string senha, string status, string perfil) : base(id)
+        public Usuarios(int id, string nome, string sobrenome, string email, string usuario, DateTime datacad, DateTime datanasc, string senha, string status, string perfil, Setores setor)
+            : base(id)
         {
-            Id = id;
             _nome = nome;
             _sobrenome = sobrenome;
             _email = email;
@@ -98,6 +126,9 @@ namespace test.Classes
             _senha = senha;
             _status = status;
             _perfil = perfil;
+            _setor = setor;
+            _permissoes = new List<PermissaoMenu>();
         }
+
     }
 }

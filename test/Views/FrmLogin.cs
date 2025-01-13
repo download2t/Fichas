@@ -3,13 +3,18 @@ using System.Windows.Forms;
 using test.Controllers;
 using test.Classes;
 using test.Data;
+using System.Reflection;
+using System.util;
+using Controle.Views.Cadastros;
+using Controle.Views;
 
 namespace test.Views
 {
     public partial class FrmLogin : Form
     {
-        private UsuariosController usuariosController;
-        private UsuariosDAO userDAO = new UsuariosDAO();
+        private CTLUsuarios CTLUsuarios;
+        private DALUsuarios userDAL = new DALUsuarios();
+        private bool senhaVisivel = false;
         public static class UserSession
         {
             public static Usuarios User { get; set; }
@@ -17,12 +22,12 @@ namespace test.Views
         public FrmLogin()
         {
             InitializeComponent();
-            usuariosController = new UsuariosController();
-        }
+            CTLUsuarios = new CTLUsuarios();
+        } 
 
         private void btnSair_Click(object sender, EventArgs e)
         {
-            Close();
+            Application.Exit();
         }
 
         private void btnEntrar_Click(object sender, EventArgs e)
@@ -36,9 +41,9 @@ namespace test.Views
             }
             else
             {
-                string senhaCriptografada = UsuariosDAO.CriptografarSenha(senhaDigitada); // Criptografa a senha digitada
+                string senhaCriptografada = DALUsuarios.CriptografarSenha(senhaDigitada); // Criptografa a senha digitada
 
-                Usuarios usuarioAutenticado = usuariosController.AutenticarUsuario(username, senhaCriptografada);
+                Usuarios usuarioAutenticado = CTLUsuarios.AutenticarUsuario(username, senhaCriptografada);
 
                 if (usuarioAutenticado != null)
                 {
@@ -50,12 +55,66 @@ namespace test.Views
                 }
                 else
                 {
-                    MessageBox.Show("Nome de usuário ou senha incorretos. Tente novamente.", "Login Falhou", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Usuarios usuarioEncontrado = CTLUsuarios.BuscarUsuarioPorNome(username);
+
+                    if (usuarioEncontrado != null)
+                    {
+                        MessageBox.Show("Senha incorreta. Tente novamente.", "Login Falhou", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Nome de usuário não encontrado.", "Login Falhou", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
 
                     txtSenha.Clear();
                     txtSenha.Focus();
                 }
             }
+        }
+
+
+
+        private void FrmLogin_Load(object sender, EventArgs e)
+        {
+            // Obtém a versão do Assembly
+            string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            // Define o texto da Label com a versão
+            lblVersao.Text += version;
+        }
+
+        private void txtSenha_KeyDown(object sender, KeyEventArgs e)
+        {
+            senhaVisivel = !senhaVisivel;
+            txtSenha.UseSystemPasswordChar = !senhaVisivel;
+
+            AtualizarImagemOlho();
+        }
+        private void AtualizarImagemOlho()
+        {
+            if (senhaVisivel)
+            {
+                pbOlhoFechado.Visible = true; // Se a senha estiver visível, mostra o botão de olho fechado
+                pbOlhoAberto.Visible = false; // Esconde o botão de olho aberto
+            }
+            else
+            {
+                pbOlhoFechado.Visible = false; // Esconde o botão de olho fechado
+                pbOlhoAberto.Visible = true; // Se a senha estiver oculta, mostra o botão de olho aberto
+            }
+        }
+
+        private void pbOlhoFechado_Click(object sender, EventArgs e)
+        {
+            pbOlhoFechado.Visible = false;
+            pbOlhoAberto.Visible = true;
+            txtSenha.UseSystemPasswordChar = false; // Mostra a senha
+        }
+
+        private void pbOlhoAberto_Click(object sender, EventArgs e)
+        {
+            pbOlhoFechado.Visible = true;
+            pbOlhoAberto.Visible = false;
+            txtSenha.UseSystemPasswordChar = true; // Esconde a senha
         }
 
     }

@@ -8,20 +8,20 @@ using System.Xml.Linq;
 using System.Data.SqlClient;
 using test.Model;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace test.Views.Cadastros
 {
-    public partial class FrmCadastroClientes : FrmPai
+    public partial class FrmCadastroClientes : FrmCadastro
     {
         private Clientes oCliente;
-        private ClientesController clientesController;
-        private bool numeroTelefoneValido = true; // Variável de controle
+        private CTLClientes aCTLClientes;
 
         public FrmCadastroClientes()
         {
             InitializeComponent();
             oCliente = new Clientes();
-            clientesController = new ClientesController();
+            aCTLClientes = new CTLClientes();
         }
 
         public override void ConhecaObj(object obj)
@@ -64,6 +64,7 @@ namespace test.Views.Cadastros
             txtBairro.Enabled = false;
             txtCidade.Enabled = false;
             txtUF.Enabled = false;
+            rbDoc.Enabled = false;
         }
         public override void DesbloquearCampos()
         {
@@ -78,6 +79,7 @@ namespace test.Views.Cadastros
             txtBairro.Enabled = true;
             txtCidade.Enabled = true;
             txtUF.Enabled = true;
+            rbDoc.Enabled = true;
         }
 
         public override void CarregarCampos()
@@ -94,84 +96,119 @@ namespace test.Views.Cadastros
             txtBairro.Text = oCliente.Bairro;
             txtCidade.Text = oCliente.Cidade;
             txtUF.Text = oCliente.UF;
+            if(txtDocumento.Text.Length <= 0)
+            {
+                rbDoc.Checked = true;
+            }
         }
 
         public override void Salvar()
         {
-            if (SalvarCliente())
+            if (VerificarCamposVazios())
             {
-                Close(); // Fecha o formulário após salvar
-            }
-        }
+                oCliente.Nome = txtNome.Text;
+                oCliente.Documento = txtDocumento.Text;
+                oCliente.Telefone = txtTelefone.Text;
+                oCliente.Email = txtEmail.Text;
+                oCliente.Cep = txtCEP.Text;
+                oCliente.Logradouro = txtLogradouro.Text;
+                oCliente.Bairro = txtBairro.Text;
+                oCliente.Cidade = txtCidade.Text;
+                oCliente.UF = txtUF.Text;
 
-        private bool SalvarCliente()
-        {
-            if (!VerificarCamposVazios())
-            {
-                return false;
-            }
+                if (int.TryParse(txtNumero.Text, out int numero))
+                {
+                    oCliente.Numero = numero;
+                }
+                else
+                {
+                    MessageBox.Show("Número inválido.");
+                    return;
+                }
 
-            oCliente.Nome = txtNome.Text;
-            oCliente.Documento = txtDocumento.Text;
-            oCliente.Telefone = txtTelefone.Text;
-            oCliente.Email = txtEmail.Text;
-            oCliente.Cep = txtCEP.Text;
-            oCliente.Logradouro = txtLogradouro.Text;
-            oCliente.Bairro = txtBairro.Text;
-            oCliente.Cidade = txtCidade.Text;
-            oCliente.UF = txtUF.Text;
+                if (oCliente.Id == 0)
+                {
+                    aCTLClientes.AdicionarCliente(oCliente);
+                    Close();
+                }
+                else
+                {
+                    aCTLClientes.AtualizarCliente(oCliente);
+                    Close();
+                }
 
-            if (int.TryParse(txtNumero.Text, out int numero))
-            {
-                oCliente.Numero = numero;
-            }
-            else
-            {
-                MessageBox.Show("Número inválido.");
-                return false;
-            }
-
-            if (oCliente.Id == 0)
-            {
-                clientesController.AdicionarCliente(oCliente);
-            }
-            else
-            {
-                clientesController.AtualizarCliente(oCliente);
+                return;
             }
 
-            return true;
         }
 
         protected override bool VerificarCamposVazios()
         {
+            List<string> camposFaltantes = new List<string>();
+
             if (string.IsNullOrWhiteSpace(txtNome.Text))
             {
-                MessageBox.Show("Campo Nome não pode estar vazio.");
-                txtNome.Focus();
-                return false;
+                camposFaltantes.Add("Nome");
             }
 
-            if (string.IsNullOrWhiteSpace(txtDocumento.Text))
+            if (!rbDoc.Checked)
             {
-                MessageBox.Show("Campo Documento não pode estar vazio.");
-                txtDocumento.Focus();
-                return false;
+                camposFaltantes.Add("Documento");
+            }
+
+            if (string.IsNullOrWhiteSpace(txtTelefone.Text))
+            {
+                camposFaltantes.Add("Telefone");
             }
 
             if (string.IsNullOrWhiteSpace(txtEmail.Text))
             {
-                MessageBox.Show("Campo Email não pode estar vazio.");
-                txtEmail.Focus();
+                camposFaltantes.Add("Email");
+            }
+
+            if (string.IsNullOrWhiteSpace(txtCEP.Text))
+            {
+                camposFaltantes.Add("CEP");
+            }
+
+            if (string.IsNullOrWhiteSpace(txtBairro.Text))
+            {
+                camposFaltantes.Add("Bairro");
+            }
+
+            if (string.IsNullOrWhiteSpace(txtLogradouro.Text))
+            {
+                camposFaltantes.Add("Logradouro");
+            }
+
+            if (string.IsNullOrWhiteSpace(txtNumero.Text))
+            {
+                camposFaltantes.Add("Número");
+            }
+
+            if (string.IsNullOrWhiteSpace(txtCidade.Text))
+            {
+                camposFaltantes.Add("Cidade");
+            }
+
+            if (string.IsNullOrWhiteSpace(txtUF.Text))
+            {
+                camposFaltantes.Add("UF");
+            }
+
+            if (camposFaltantes.Count > 0)
+            {
+                string camposFaltantesStr = string.Join(", ", camposFaltantes);
+                MessageBox.Show("Os seguintes campos são obrigatórios e não foram preenchidos: " + camposFaltantesStr, "Campos em Falta", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
 
             return true;
         }
 
-        private void btnSalvar_Click(object sender, EventArgs e)
+        protected override void Verificar()
         {
-            if (btnSalvar.Text == "Salvar") 
+            if (btnSalvar.Text == "Salvar")
             {
                 txtDocumento_Leave(txtDocumento, EventArgs.Empty);
                 txtTelefone_Leave(txtTelefone, EventArgs.Empty);
@@ -196,8 +233,8 @@ namespace test.Views.Cadastros
             {
                 try
                 {
-                    ClientesController clientesController = new ClientesController();
-                    clientesController.ExcluirCliente(oCliente.Id);
+                    CTLClientes aCTLClientes = new CTLClientes();
+                    aCTLClientes.ExcluirCliente(oCliente.Id);
 
                     // Feche o formulário após a exclusão
                     Close();
@@ -234,7 +271,7 @@ namespace test.Views.Cadastros
                 {
                     // Divida a string de resultado em campos individuais
                     string[] campos = resultado.Split(','); // THANKS GPT kkk
-                    
+
                     //Vc podia colocar um tipo DE RETORNO LOGRADOURO BAIRRO UF CIDADE 
 
                     // Encontre os valores específicos para cada campo
@@ -305,5 +342,17 @@ namespace test.Views.Cadastros
             }
         }
 
+        private void rbDoc_CheckedChanged(object sender, EventArgs e)
+        {
+            if (rbDoc.Checked)
+            {
+                txtDocumento.Clear();
+            }
+        }
+
+        private void txtDocumento_TextChanged(object sender, EventArgs e)
+        {
+            rbDoc.Checked = false;
+        }
     }
 }

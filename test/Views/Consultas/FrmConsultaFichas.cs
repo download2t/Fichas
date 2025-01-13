@@ -1,22 +1,48 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Forms;
 using test.Classes;
 using test.Controllers;
-using System.Collections.Generic;
 using test.Views.Cadastros;
 
 namespace test.Views.Consultas
 {
     public partial class FrmConsultaFichas : FrmConsulta
     {
-        private FichasController fichasController;
+        private CTLFichas aCTLFichas;
         private FrmCadastroFichas frmCadastro;
         private Fichas fichaSelecionada;
+        private string AcessosLiberados = "FICHAS";
 
         public FrmConsultaFichas()
         {
             InitializeComponent();
-            fichasController = new FichasController();
+            aCTLFichas = new CTLFichas();
+            LiberarAcessos(AcessosLiberados);
+            this.Controls.Add(dgv);
+            this.Resize += FrmConsulta_Resize; // Associa o evento de redimensionamento
+            DataGrid();
+
+        }
+
+        public override void DataGrid()
+        {
+            dgv.RowHeadersVisible = false;
+            dgv.AutoGenerateColumns = false;
+            dgv.Columns.Clear();
+
+            dgv.Columns.AddRange(new DataGridViewTextBoxColumn[]
+            {
+                new DataGridViewTextBoxColumn { Name = "Código", HeaderText = "Código", DataPropertyName = "Id", Width = 60 },
+                new DataGridViewTextBoxColumn { Name = "Usuário", HeaderText = "Usuário", DataPropertyName = "Usuarios.Usuario", Width = 100 },
+                new DataGridViewTextBoxColumn { Name = "Cliente", HeaderText = "Cliente", DataPropertyName = "Clientes.Nome", Width = 205 },
+                new DataGridViewTextBoxColumn { Name = "Data de Criação", HeaderText = "Data de Criação", DataPropertyName = "DataCriacao", Width = 100 },
+                new DataGridViewTextBoxColumn { Name = "Descrição", HeaderText = "Descrição", DataPropertyName = "Descricao", Width = 800 }
+            });
+
+            // Calcula as proporções das colunas
+            CalcularProporcoesColunas(dgv);
         }
 
         public override void SetFrmCadastro(object obj)
@@ -40,8 +66,8 @@ namespace test.Views.Consultas
         public override void Incluir()
         {
             base.Incluir();
-            fichasController.Incluir();
-            CarregaLV();
+            aCTLFichas.Incluir();
+            CarregaDGV();
         }
 
         public override void Alterar()
@@ -50,11 +76,11 @@ namespace test.Views.Consultas
             int idFicha = ObterIdSelecionado();
             if (idFicha > 0)
             {
-                Fichas ficha = fichasController.BuscarFichaPorId(idFicha);
+                Fichas ficha = aCTLFichas.BuscarFichaPorId(idFicha);
                 if (ficha != null)
                 {
-                    fichasController.Alterar(ficha);
-                    CarregaLV();
+                    aCTLFichas.Alterar(ficha);
+                    CarregaDGV();
                 }
             }
         }
@@ -65,46 +91,54 @@ namespace test.Views.Consultas
             int idFicha = ObterIdSelecionado();
             if (idFicha > 0)
             {
-                Fichas ficha = fichasController.BuscarFichaPorId(idFicha);
+                Fichas ficha = aCTLFichas.BuscarFichaPorId(idFicha);
                 if (ficha != null)
                 {
-                    fichasController.Excluir(ficha);
-                    CarregaLV();
+                    aCTLFichas.Excluir(ficha);
+                    CarregaDGV();
                 }
             }
         }
+
         public override void Visualizar()
         {
-            if (listView1.SelectedItems.Count > 0)
+            if (dgv.SelectedRows.Count > 0)
             {
-                ListViewItem selectedItem = listView1.SelectedItems[0];
-                Fichas ficha = selectedItem.Tag as Fichas;
+                DataGridViewRow selectedRow = dgv.SelectedRows[0];
+                int id = Convert.ToInt32(selectedRow.Cells[0].Value);
+                Fichas ficha = aCTLFichas.BuscarFichaPorId((int)id);
 
                 if (ficha != null)
                 {
-                    fichasController.Visualizar(ficha);
+                    aCTLFichas.Visualizar(ficha);
                 }
             }
         }
-        private void PreencherFichasListView(IEnumerable<Fichas> fichas)
-        {
-            listView1.Items.Clear();
 
+        private void PreencherFichasDataGridView(IEnumerable<Fichas> fichas)
+        {
+            // Limpa as linhas existentes no DataGridView
+            dgv.Rows.Clear();
+
+            // Adiciona as linhas uma por uma
             foreach (var ficha in fichas)
             {
-                ListViewItem item = new ListViewItem(Convert.ToString(ficha.Id));
-                item.SubItems.Add(ficha.Usuarios.Usuario);
-                item.SubItems.Add(ficha.Clientes.Nome);
-                item.SubItems.Add(ficha.DataCriacao.ToString());
-                item.SubItems.Add(ficha.Descricao);
-                item.Tag = ficha; // Associe o objeto Fichas ao item usando a propriedade Tag
-                listView1.Items.Add(item);
+                dgv.Rows.Add(new object[]
+                {
+                    ficha.Id,
+                    ficha.Usuarios?.Usuario ?? "N/A",
+                    ficha.Clientes?.Nome ?? "N/A",
+                    ficha.DataCriacao.ToString(),
+                    ficha.Descricao
+                });
             }
         }
-        public override void CarregaLV()
+
+        public override void CarregaDGV()
         {
-            base.CarregaLV();
-            PreencherFichasListView(fichasController.ListarFichas());
+            base.CarregaDGV();
+            List<Fichas> fichas = aCTLFichas.ListarFichas();
+            PreencherFichasDataGridView(fichas);
         }
 
         protected override void Pesquisar()
@@ -115,29 +149,28 @@ namespace test.Views.Consultas
             if (!string.IsNullOrEmpty(valorPesquisa) && !string.IsNullOrEmpty(criterioPesquisa))
             {
                 // Execute uma pesquisa na camada de controle com base no critério
-                var resultados = fichasController.PesquisarFichasPorCriterio(criterioPesquisa, valorPesquisa);
+                var resultados = aCTLFichas.PesquisarFichasPorCriterio(criterioPesquisa, valorPesquisa);
 
-                // Use o método de preenchimento para atualizar a ListView
-                PreencherFichasListView(resultados);
+                // Use o método de preenchimento para atualizar o DataGridView
+                PreencherFichasDataGridView(resultados);
             }
         }
-
-
 
         protected override void Atualizar()
         {
             base.Atualizar();
-            CarregaLV();
+            CarregaDGV();
         }
 
         private int ObterIdSelecionado()
         {
-            if (listView1.SelectedItems.Count > 0)
+            if (dgv.SelectedRows.Count > 0)
             {
-                return int.Parse(listView1.SelectedItems[0].Text);
+                return int.Parse(dgv.SelectedRows[0].Cells["Código"].Value.ToString());
             }
             return 0;
         }
+
         private string ObterCritérioPesquisa()
         {
             if (rbCodigo.Checked)
@@ -152,9 +185,65 @@ namespace test.Views.Consultas
             {
                 return "Clientes"; // Pesquisar pelos clientes
             }
-
             return string.Empty; // Nenhum critério selecionado
         }
 
+        public override void Filtrar()
+        {
+            base.CarregaDGV();
+
+            DateTime? dataInicio = null;
+            DateTime? dataFim = null;
+
+            if (dtData1.Value.Date > DateTime.MinValue.Date)
+            {
+                if (dtData2.Value.Date > DateTime.MinValue.Date)
+                {
+                    if (dtData1.Value.Date <= dtData2.Value.Date)
+                    {
+                        dataInicio = dtData1.Value.Date;
+                        dataFim = dtData2.Value.Date;
+                    }
+                    else
+                    {
+                        MessageBox.Show("A data de início deve ser anterior à data de término.", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Selecione uma data de término.", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
+            else if (dtData2.Value.Date > DateTime.MinValue.Date)
+            {
+                MessageBox.Show("Selecione uma data de início.", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            List<Fichas> fichas = aCTLFichas.ListarFichas(dataInicio, dataFim);
+            PreencherFichasDataGridView(fichas);
+        }
+
+        private void btnFiltro_Click(object sender, EventArgs e)
+        {
+            Filtrar();
+        }
+
+        private void dgv_CellContentDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            Visualizar();
+        }
+
+        private void dgv_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            dgv.EndEdit();
+        }
+
+        private void FrmConsultaFichas_Load(object sender, EventArgs e)
+        {
+            CarregaDGV();
+        }
     }
 }

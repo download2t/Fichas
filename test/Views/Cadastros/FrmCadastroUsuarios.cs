@@ -1,25 +1,29 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Drawing;
 using System.Windows.Forms;
 using test.Classes;
 using test.Controllers;
 using test.Data;
+using test.Model;
 using test.Views.Consultas;
+using static test.Views.FrmLogin;
 
 namespace test.Views.Cadastros
 {
-    public partial class FrmCadastroUsuarios : FrmPai
+    public partial class FrmCadastroUsuarios :FrmCadastro
     {
         private Usuarios oUsuario;
-        private UsuariosController usuariosController;
+        private CTLUsuarios aCTLUsuarios;
         private FrmConsultaUsuarios consultaUsuarios;
-        UsuariosDAO userDao = new UsuariosDAO();
 
         public FrmCadastroUsuarios()
         {
             InitializeComponent();
-            usuariosController = new UsuariosController();
+            aCTLUsuarios = new CTLUsuarios();
             oUsuario = new Usuarios();
+            
         }
 
         public void SetConsultaUsuarios(FrmConsultaUsuarios consultaUsuarios)
@@ -47,9 +51,10 @@ namespace test.Views.Cadastros
             txtSenha.Clear();
             txtConfirma.Clear();
             txtUsuario.Clear();
+            txtCodSetor.Clear();
+            txtSetor.Clear();
             cmbPerfil.SelectedIndex = -1;
             cmbStatus.SelectedIndex = -1;
-            dtCadastro.Value = DateTime.Now;
             dtNascimento.Value = DateTime.Now;
         }
 
@@ -65,7 +70,8 @@ namespace test.Views.Cadastros
             txtUsuario.Enabled = false;
             cmbPerfil.Enabled = false;
             cmbStatus.Enabled = false;
-            dtCadastro.Enabled = false;
+            txtSetor.Enabled = false;
+            txtCodSetor.Enabled = false;
             dtNascimento.Enabled = false;
         }
 
@@ -81,7 +87,8 @@ namespace test.Views.Cadastros
             txtUsuario.Enabled = true;
             cmbPerfil.Enabled = true;
             cmbStatus.Enabled = true;
-            dtCadastro.Enabled = true;
+            txtSetor.Enabled = true;
+            txtCodSetor.Enabled= true;
             dtNascimento.Enabled = true;
         }
 
@@ -95,7 +102,8 @@ namespace test.Views.Cadastros
             txtUsuario.Text = oUsuario.Usuario;
             cmbPerfil.SelectedItem = oUsuario.Perfil;
             cmbStatus.SelectedItem = oUsuario.Status;
-            dtCadastro.Value = oUsuario.DataCadastro ?? DateTime.Now;
+            txtSetor.Text = oUsuario.Setor.Setor;
+            txtCodSetor.Text = oUsuario.Setor.Id.ToString();
             dtNascimento.Value = oUsuario.DataNascimento ?? DateTime.Now;
         }
 
@@ -109,8 +117,10 @@ namespace test.Views.Cadastros
                 oUsuario.Usuario = txtUsuario.Text;
                 oUsuario.Perfil = cmbPerfil.SelectedItem?.ToString();
                 oUsuario.Status = cmbStatus.SelectedItem?.ToString();
-                oUsuario.DataCadastro = dtCadastro.Value;
+                DateTime DataCadastro = DateTime.Now;
+                oUsuario.DataCadastro = DataCadastro;
                 oUsuario.DataNascimento = dtNascimento.Value;
+                oUsuario.Setor.Id = Convert.ToInt32(txtCodSetor.Text);
 
                 string senha = txtSenha.Text;
                 string confirmaSenha = txtConfirma.Text;
@@ -121,8 +131,9 @@ namespace test.Views.Cadastros
                     {
                         if (senha == confirmaSenha)
                         {
-                            oUsuario.Senha = UsuariosDAO.CriptografarSenha(senha); // Criptografa a senha
-                            usuariosController.AdicionarUsuario(oUsuario);
+                            oUsuario.Senha = DALUsuarios.CriptografarSenha(senha); // Criptografa a senha
+                            aCTLUsuarios.AdicionarUsuario(oUsuario);
+                            Close();
                         }
                         else
                         {
@@ -140,18 +151,17 @@ namespace test.Views.Cadastros
                     {
                         if (senha == confirmaSenha)
                         {
-                            oUsuario.Senha = UsuariosDAO.CriptografarSenha(senha); // Criptografa a senha
-                            usuariosController.AtualizarUsuario(oUsuario);
+                            oUsuario.Senha = DALUsuarios.CriptografarSenha(senha); // Criptografa a senha
+                            aCTLUsuarios.AtualizarUsuario(oUsuario);
                             Close();
                         }
                         else
-                        {
                             MessageBox.Show("As senhas não correspondem. Por favor, verifique.");
-                        }
+                        
                     }
                     else
                     {
-                        usuariosController.AtualizarUsuarioSemSenha(oUsuario);
+                        aCTLUsuarios.AtualizarUsuarioSemSenha(oUsuario);
                         Close();
                     }
                 }
@@ -159,78 +169,86 @@ namespace test.Views.Cadastros
             }
         }
 
-
-
-
         protected override bool VerificarCamposVazios()
         {
+            List<string> camposFaltantes = new List<string>();
+
             if (string.IsNullOrWhiteSpace(txtNome.Text))
             {
-                MessageBox.Show("Campo Nome não pode estar vazio.");
-                txtNome.Focus();
-                return false;
+                camposFaltantes.Add("Nome");
+            }
+
+            if (dtNascimento.Value == DateTime.Today)
+            {
+                camposFaltantes.Add("Data de nascimento");
+            }
+            if (string.IsNullOrWhiteSpace(txtEmail.Text))
+            {
+                camposFaltantes.Add("E-mail");
+            }
+
+            if (string.IsNullOrWhiteSpace(txtCodSetor.Text))
+            {
+                camposFaltantes.Add("Código da cidade");
+            }
+            else
+            {
+                if (!int.TryParse(txtCodSetor.Text, out int cod) || cod <= 0)
+                {
+                    camposFaltantes.Add("Código do setor (deve ser um número maior que zero)");
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(cmbStatus.Text))
+            {
+                camposFaltantes.Add("Status");
+            }
+            // Verificação da data de nascimento
+            if (dtNascimento.Value > DateTime.Now)
+            {
+                camposFaltantes.Add("Data (não pode ser uma data futura)");
             }
 
             if (string.IsNullOrWhiteSpace(txtSobrenome.Text))
             {
-                MessageBox.Show("Campo Sobrenome não pode estar vazio.");
-                txtSobrenome.Focus();
-                return false;
+                camposFaltantes.Add("Sobrenome");
             }
-
-            if (string.IsNullOrWhiteSpace(txtEmail.Text))
+            // Verificação da data de nascimento
+            if (dtNascimento.Value > DateTime.Now)
             {
-                MessageBox.Show("Campo Email não pode estar vazio.");
-                txtEmail.Focus();
-                return false;
+                camposFaltantes.Add("Data (não pode ser uma data futura)");
             }
 
             if (string.IsNullOrWhiteSpace(txtUsuario.Text))
             {
-                MessageBox.Show("Campo Usuário não pode estar vazio.");
-                txtUsuario.Focus();
+                camposFaltantes.Add("Usuario");
+            }
+
+            if ((cmbPerfil.Text == "Admin") && (UserSession.User.Perfil != "Admin"))
+            {
+                    MessageBox.Show("Usuário não tem direitos de administrador!");
+                    txtNome.Focus();
+                    return false;
+            }
+            if (camposFaltantes.Count > 0)
+            {
+                string camposFaltantesStr = string.Join(", ", camposFaltantes);
+                MessageBox.Show("Os seguintes campos são obrigatórios e não foram preenchidos: " + camposFaltantesStr, "Campos em Falta", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
 
             return true;
         }
-        private bool VerificaSenha()
-        {
-            string senha = txtSenha.Text;
-            string confirmaSenha = txtConfirma.Text;
 
-            if (string.IsNullOrWhiteSpace(senha) || senha != confirmaSenha)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-
-        private void btnSalvar_Click(object sender, EventArgs e)
-        {
-            if (btnSalvar.Text == "Salvar")
-            {
-                Salvar();
-            }
-            else if (btnSalvar.Text == "Excluir")
-            {
-                DialogResult result = MessageBox.Show("Tem certeza que deseja excluir este cliente?", "Confirmação de Exclusão", MessageBoxButtons.YesNo);
-                if (result == DialogResult.Yes)
-                {
-                    ExcluirUsuarios();
-                }
-            }
-        }
+   
         private void ExcluirUsuarios()
         {
             if (oUsuario != null)
             {
                 try
                 {
-                    UsuariosController usuariosController = new UsuariosController();
-                    usuariosController.ExcluirUsuario(oUsuario.Id);
+                    CTLUsuarios CTLUsuarios = new CTLUsuarios();
+                    CTLUsuarios.ExcluirUsuario(oUsuario.Id);
 
                     // Feche o formulário após a exclusão
                     Close();
@@ -254,8 +272,128 @@ namespace test.Views.Cadastros
                 }
             }
         }
+        protected override void Verificar()
+        {
+            if (btnSalvar.Text == "Salvar")
+            {
+                Salvar();
+            }
+            else if (btnSalvar.Text == "Excluir")
+            {
+                DialogResult result = MessageBox.Show("Tem certeza que deseja excluir este cliente?", "Confirmação de Exclusão", MessageBoxButtons.YesNo);
+                if (result == DialogResult.Yes)
+                {
+                    ExcluirUsuarios();
+                }
+            }
+        }
 
+        private void txtEmail_Leave(object sender, EventArgs e)
+        {
+            string email = txtEmail.Text.Trim();
 
+            if (!string.IsNullOrEmpty(email) && !Operacao.IsEmail(email))
+            {
+                MessageBox.Show("E-mail inválido. Por favor, insira um endereço de e-mail válido.");
+                txtEmail.Clear();
+                txtEmail.Focus();
+            }
+        }
 
+        private void btnVerificar_Click(object sender, EventArgs e)
+        {
+            string usuario = txtUsuario.Text.Trim();
+            if (!string.IsNullOrEmpty(usuario)) // Verifica se a string não está vazia
+            {
+                CTLUsuarios userController = new CTLUsuarios();
+                Usuarios user = userController.BuscarUsuarioPorNome(usuario);
+
+                if (user != null)
+                {
+                    MessageBox.Show("Usuário já cadastrado!");
+                    txtUsuario.Clear();
+                }
+                else
+                {
+                    MessageBox.Show("Usuário Livre!!!");
+                    txtUsuario.ForeColor = Color.Green;
+                }
+            }
+            else
+            {
+                MessageBox.Show("Digite um nome de usuário válido.");
+            }
+        }
+
+        private void txtUsuario_TextChanged(object sender, EventArgs e)
+        {
+            txtUsuario.ForeColor= Color.Black;
+        }
+
+        private void txtUsuario_Leave(object sender, EventArgs e)
+        {
+            if(txtUsuario.Text != string.Empty)
+                 btnVerificar.PerformClick();
+        }
+
+        private void btnPesquisarSetor_Click(object sender, EventArgs e)
+        {
+            using (FrmConsultaSetores consulta = new FrmConsultaSetores())
+            {
+                consulta.btnSair.Text = "Selecionar";
+                consulta.ShowDialog();
+
+                // Após o retorno do diálogo, você pode acessar os valores do cliente selecionado
+                int IdSelecionado = consulta.IdSelecionado;
+                string NomeSelecionado = consulta.NomeSelecionado;
+
+                // Agora, defina os valores nos campos do seu formulário de cadastro
+                txtCodSetor.Text = IdSelecionado.ToString();
+                txtSetor.Text = NomeSelecionado;
+            }
+        }
+
+        private void txtCodSetor_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            Operacao.ValidarValorKeyPress((TextBox)sender, e);
+        }
+
+        private void txtCodSetor_Leave(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtCodSetor.Text))
+            {
+                // Se o campo txtCodCliente estiver vazio, limpe também o campo txtCliente
+                txtCodSetor.Clear();
+                txtSetor.Clear();
+            }
+            else if (int.TryParse(txtCodSetor.Text, out int codSetor) && codSetor > 0)
+            {
+                CTLSetores aCTLSetor = new CTLSetores();
+                Setores Valida = aCTLSetor.BuscarSetorPorId(codSetor);
+               
+                if (Valida == null)
+                {
+                    MessageBox.Show("Código inexistente.");
+                    LimpraSetor();
+
+                }
+                else
+                {
+                    txtSetor.Text = Valida.Setor;
+                }
+            }
+            else
+            {
+                // Se o código não for um número inteiro válido ou não for maior que zero, limpe ambos os campos
+                MessageBox.Show("Código inválido. Certifique-se de inserir um número inteiro válido maior que zero.");
+                LimpraSetor();
+            }
+        }
+        private void LimpraSetor()
+        {
+            txtCodSetor.Clear();
+            txtSetor.Clear();
+            txtCodSetor.Focus();
+        }
     }
 }

@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmPai));
             this.txtID = new System.Windows.Forms.TextBox();
             this.lbID = new System.Windows.Forms.Label();
             this.btnSair = new System.Windows.Forms.Button();
@@ -44,6 +45,8 @@
             // lbID
             // 
             this.lbID.AutoSize = true;
+            this.lbID.BackColor = System.Drawing.Color.Transparent;
+            this.lbID.ForeColor = System.Drawing.Color.White;
             this.lbID.Location = new System.Drawing.Point(9, 499);
             this.lbID.Name = "lbID";
             this.lbID.Size = new System.Drawing.Size(21, 17);
@@ -53,30 +56,38 @@
             // btnSair
             // 
             this.btnSair.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.btnSair.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(45)))));
             this.btnSair.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnSair.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            this.btnSair.FlatAppearance.BorderColor = System.Drawing.Color.White;
+            this.btnSair.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
+            this.btnSair.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.btnSair.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSair.ForeColor = System.Drawing.Color.White;
             this.btnSair.Location = new System.Drawing.Point(955, 513);
             this.btnSair.Name = "btnSair";
             this.btnSair.Size = new System.Drawing.Size(100, 29);
             this.btnSair.TabIndex = 11;
             this.btnSair.Text = "Sair";
-            this.btnSair.UseVisualStyleBackColor = true;
+            this.btnSair.UseVisualStyleBackColor = false;
             this.btnSair.Click += new System.EventHandler(this.btnSair_Click);
             // 
             // FrmPai
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.White;
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(135)))), ((int)(((byte)(135)))), ((int)(((byte)(135)))));
             this.CancelButton = this.btnSair;
             this.ClientSize = new System.Drawing.Size(1067, 554);
             this.Controls.Add(this.btnSair);
             this.Controls.Add(this.lbID);
             this.Controls.Add(this.txtID);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.ForeColor = System.Drawing.SystemColors.ControlText;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(4);
+            this.MaximizeBox = false;
             this.Name = "FrmPai";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "FormPai";
@@ -86,8 +97,8 @@
         }
 
         #endregion
-        protected System.Windows.Forms.TextBox txtID;
         protected System.Windows.Forms.Label lbID;
         public System.Windows.Forms.Button btnSair;
+        public System.Windows.Forms.TextBox txtID;
     }
 }

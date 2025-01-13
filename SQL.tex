@@ -1,0 +1,312 @@
+-- DB CONTROLE
+-- Tabela de Clientes
+CREATE TABLE [dbo].[Clientes] (
+    [Id]         INT            IDENTITY (1, 1) NOT NULL,
+    [Nome]       NVARCHAR (55)  NOT NULL,
+    [Documento]  NVARCHAR (20)  NULL,
+    [Telefone]   NVARCHAR (15)  NOT NULL,
+    [Email]      NVARCHAR (55)  NOT NULL,
+    [Cep]        NVARCHAR (10)  NOT NULL,
+    [Cidade]     NVARCHAR (100) NOT NULL,
+    [Bairro]     NVARCHAR (100) NOT NULL,
+    [Logradouro] NVARCHAR (100) NOT NULL,
+    [Uf]         NVARCHAR (3)   NOT NULL,
+    [Numero]     INT            NOT NULL,
+    PRIMARY KEY CLUSTERED ([Id] ASC)
+);
+-- Tabela de Usuários
+CREATE TABLE [dbo].[Usuarios] (
+    [Id]             INT            IDENTITY (1, 1) NOT NULL,
+    [Nome]           NVARCHAR (55)  NOT NULL,
+    [Sobrenome]      NVARCHAR (55)  NULL,
+    [Email]          NVARCHAR (55)  NOT NULL,
+    [Senha]          NVARCHAR (150) NOT NULL,
+    [Usuario]        NVARCHAR (55)  NOT NULL,
+    [Perfil]         NVARCHAR (50)  NOT NULL,
+    [Status]         NVARCHAR (20)  NOT NULL,
+    [DataCadastro]   DATETIME       NULL,
+    [DataNascimento] DATETIME       NULL,
+	[SetorID]        int null,
+    PRIMARY KEY CLUSTERED ([Id] ASC),
+    CONSTRAINT [UQ_Usuarios_Usuario] UNIQUE NONCLUSTERED ([Usuario] ASC)
+	FOREIGN KEY ([SetorId]) REFERENCES [dbo].[Setores] ([Id]),
+);
+-- Tabela de Fichas
+CREATE TABLE [dbo].[Fichas] (
+    [Id]          INT             IDENTITY (1, 1) NOT NULL,
+    [ClienteId]   INT             NOT NULL,
+    [UsuarioId]   INT             NOT NULL,
+    [DataCriacao] DATETIME        NULL,
+    [Descricao]   NVARCHAR (1500) NOT NULL,
+    PRIMARY KEY CLUSTERED ([Id] ASC),
+    FOREIGN KEY ([ClienteId]) REFERENCES [dbo].[Clientes] ([Id]),
+    FOREIGN KEY ([UsuarioId]) REFERENCES [dbo].[Usuarios] ([Id])
+);
+
+-- Tabela de Categoria
+CREATE TABLE [dbo].[Categorias] (
+    [Id]   INT           IDENTITY (1, 1) NOT NULL,
+    [Nome] VARCHAR (150) NOT NULL,
+    [Senha] BIT NULL, 
+    PRIMARY KEY CLUSTERED ([Id] ASC),
+    UNIQUE NONCLUSTERED ([Nome] ASC)
+);
+-- Tabela de SubCategoria
+CREATE TABLE [dbo].[SubCategoria] (
+    [Id]           INT           IDENTITY (1, 1) NOT NULL,
+    [Nome]         VARCHAR (150) NOT NULL,
+    [CategoriaId] INT           NOT NULL,
+    PRIMARY KEY CLUSTERED ([Id] ASC),
+    UNIQUE NONCLUSTERED ([Nome] ASC),
+    FOREIGN KEY ([CategoriaId]) REFERENCES [dbo].[Categorias] ([Id])
+);
+-- Tabela de Setores
+CREATE TABLE [dbo].[Setores]
+(
+	[Id] INT  IDENTITY (1, 1) NOT NULL,
+	[Setor]   NVARCHAR (150) NOT NULL
+	PRIMARY KEY CLUSTERED ([Id] ASC),
+)
+CREATE TABLE [dbo].[Patrimonios] (
+    [Id]             INT             IDENTITY (1, 1) NOT NULL,
+    [Patrimonio]     NVARCHAR (255)  NOT NULL,
+    [Descricao]      NVARCHAR (MAX)  NOT NULL,
+    [Valor]          DECIMAL (10,2)    NOT NULL,
+    [SetorId]        INT             NOT NULL,
+    [SubcategoriaId] INT             NOT NULL,
+    [Foto]           VARBINARY (MAX) NULL,
+    [Baixa] nvarchar(3) NULL DEFAULT 'NAO', 
+    PRIMARY KEY CLUSTERED ([Id] ASC),
+    FOREIGN KEY ([SetorId]) REFERENCES [dbo].[Setores] ([Id]),
+    FOREIGN KEY ([SubcategoriaId]) REFERENCES [dbo].[SubCategoria] ([Id])
+);
+-- Tabela de Manutenção
+CREATE TABLE [dbo].[Manutencao] (
+    [Id]             INT           IDENTITY (1, 1) NOT NULL,
+    [PatrimonioId]   INT           NOT NULL,
+    [Data_Reparo]    DATETIME      NULL,
+    [Valor_Conserto] DECIMAL (10,2)  NULL,
+    [Descricao]      VARCHAR (150) NOT NULL,
+    [Profissional]   VARCHAR (150) NULL,
+    [Telefone]       VARCHAR (20)  NULL,
+    PRIMARY KEY CLUSTERED ([Id] ASC),
+    FOREIGN KEY ([PatrimonioId]) REFERENCES [dbo].[Patrimonios] ([Id])
+);
+-- Criação da tabela MenuOpcoes
+CREATE TABLE [dbo].[MenuOpcoes]
+(
+	[Id] INT NOT NULL PRIMARY KEY IDENTITY, 
+    [Nome] VARCHAR(100) NOT NULL, 
+    [Descricao] VARCHAR(255) NOT NULL, 
+    [Nivel] TINYINT NOT NULL
+);
+-- Criação da tabela PermissaoMenu como tabela intermediária
+CREATE TABLE [dbo].[PermissaoMenu] (
+    [Id]             INT            IDENTITY (1, 1) NOT NULL,
+    [UsuarioId]      INT            NOT NULL,
+    [MenuOpcaoId]    INT            NOT NULL,
+    [PodeAdicionar]  BIT            NOT NULL,
+    [PodeAlterar]    BIT            NOT NULL,
+    [PodeExcluir]    BIT            NOT NULL,
+    [PodeConsultar]  BIT            NOT NULL,
+    PRIMARY KEY CLUSTERED ([Id] ASC),
+    CONSTRAINT [FK_PermissaoMenu_Usuarios_UsuarioId] FOREIGN KEY ([UsuarioId]) REFERENCES [Usuarios]([Id]),
+    CONSTRAINT [FK_PermissaoMenu_MenuOpcoes_MenuOpcaoId] FOREIGN KEY ([MenuOpcaoId]) REFERENCES [MenuOpcoes]([Id])
+);
+-- Tabela de Senhas
+CREATE TABLE [dbo].[Senhas]
+(
+	[Id] INT NOT NULL PRIMARY KEY IDENTITY, 
+    [Login] VARCHAR(150) NOT NULL,
+	[Senha] VARCHAR(150) NOT NULL, 
+	[Descricao] VARCHAR(255) NOT NULL, 
+	[Link] VARCHAR(255) NULL,
+	[CategoriaId] INT NOT NULL 
+	CONSTRAINT [FK_CategoriaSenhas] FOREIGN KEY ([CategoriaId]) REFERENCES [Categorias]([Id]),
+);
+-- Tabela de Contatos
+CREATE TABLE Contatos (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Nome NVARCHAR(100) NOT NULL,
+    Numero NVARCHAR(20) NOT NULL
+);
+
+-- Tabela de Mensagens
+CREATE TABLE [dbo].[Mensagens] (
+    [Id]        INT            IDENTITY (1, 1) NOT NULL,
+    [ContatoId] INT            NOT NULL,
+    [DataEnvio] DATETIME       NOT NULL,
+    [Mensagem]  NVARCHAR (MAX) NOT NULL,
+    [Status]    CHAR (1)       NULL,
+    PRIMARY KEY CLUSTERED ([Id] ASC),
+    FOREIGN KEY ([ContatoId]) REFERENCES [dbo].[Contatos] ([Id])
+);
+
+-- Tabela de Cargos
+CREATE TABLE [dbo].[Cargos] (
+    [Id]        INT            IDENTITY (1, 1) NOT NULL,
+	[Funcao] [varchar](150) NOT NULL,
+	[Pontos] [int] NOT NULL,
+    PRIMARY KEY CLUSTERED ([Id] ASC),
+);
+CREATE TABLE [dbo].[Funcionarios](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Nome] [varchar](150) NULL,
+	[Cpf] [varchar](150) NULL,
+	[SetorId] [int] NOT NULL,
+	[CargoId] [int] NOT NULL,
+	[SalBruto] [decimal](10,2) NULL,
+	[Telefone] [varchar](15) NULL,
+	[Ativo] [char](1) NOT NULL,
+	PRIMARY KEY CLUSTERED ([Id] ASC),
+	 FOREIGN KEY ([SetorId]) REFERENCES [dbo].[Setores] ([Id]),
+	 FOREIGN KEY ([CargoId]) REFERENCES [dbo].[Cargos] ([Id])
+);
+
+-- Criar a tabela de Ordem de serviço
+CREATE TABLE OrdemDeServico (
+    ID INT PRIMARY KEY IDENTITY,
+    UsuarioID INT,
+    Titulo NVARCHAR(100),
+    Descricao NVARCHAR(MAX),
+    DataAbertura DATETIME,
+    DataFechamento DATETIME,
+    DataReabertura DATETIME,
+    Ticket NVARCHAR(100),
+    Prioridade NVARCHAR(50) NOT NULL,
+    Status NVARCHAR(55) NULL,
+    CONSTRAINT FK_OrdemDeServico_Usuarios FOREIGN KEY (UsuarioID) REFERENCES Usuarios(ID)
+);
+-- Criar a tabela de fotos
+	CREATE TABLE Fotos (
+    FotoID INT PRIMARY KEY IDENTITY,
+    OrdemDeServicoID INT,
+    Foto VARBINARY(MAX),
+	Descricao NVARCHAR(100),
+    FOREIGN KEY (OrdemDeServicoID) REFERENCES OrdemDeServico(ID) ON DELETE CASCADE
+);
+GO
+-- Criar a tabela de ControleGov
+CREATE TABLE ControleGov (
+    ID INT PRIMARY KEY IDENTITY,
+    Data DATETIME,
+    PermaneceEntrada INT ,
+    SaidasEntrada INT,
+    ReservadasRealizadas INT,
+    PermaneceRealizadas INT,
+    SaidasRealizadas INT,
+    Realizados INT,
+    Porcentagem DECIMAL (10,2) NOT NULL,
+    FuncionarioID INT,
+    FOREIGN KEY (FuncionarioID) REFERENCES Funcionarios(Id),
+    CONSTRAINT UQ_ControleGov_Data_FuncionarioID UNIQUE (Data, FuncionarioID)
+);
+
+CREATE PROCEDURE ExcluirUsuarioComPermissoes
+    @UsuarioId INT
+AS
+BEGIN
+    BEGIN TRANSACTION;
+    
+    BEGIN TRY
+        -- Deletar as permissões associadas ao usuário
+        DELETE FROM PermissaoMenu WHERE UsuarioId = @UsuarioId;
+        
+        -- Deletar o usuário
+        DELETE FROM Usuarios WHERE Id = @UsuarioId;
+        
+        COMMIT TRANSACTION; -- Confirmar a transação
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION; -- Reverter a transação em caso de erro
+        
+        -- Tratar o erro e lançar uma exceção
+        DECLARE @ErroNumero INT, @ErroMensagem NVARCHAR(4000), @ErroEstado INT;
+        
+        SELECT 
+            @ErroNumero = ERROR_NUMBER(),
+            @ErroMensagem = ERROR_MESSAGE(),
+            @ErroEstado = ERROR_STATE();
+        
+        RAISERROR (@ErroMensagem, 16, 1); -- Lançar uma exceção com o número e a mensagem do erro
+        
+        -- Opcionalmente, você pode registrar o erro em uma tabela de logs ou executar outras ações
+    END CATCH
+END;
+
+-- Criar a tabela de Itens LAVANDERIA
+CREATE TABLE ItensLavanderia (
+    ID INT PRIMARY KEY IDENTITY,
+	Nome nvarchar(255) NOT NULL,
+);
+
+-- Criar a tabela de LAVANDERIA
+CREATE TABLE Lavanderia (
+    ID INT PRIMARY KEY IDENTITY,
+    Data DATETIME NOT NULL,
+    Peso DECIMAL (10,2) NOT NULL,
+	Processo nvarchar(200) NOT NULL,
+    FuncionarioID INT NOT NULL,
+	ItensLavanderiaID INT NOT NULL,
+    FOREIGN KEY (FuncionarioID) REFERENCES Funcionarios(Id),
+	FOREIGN KEY (ItensLavanderiaID) REFERENCES ItensLavanderia(ID)
+);
+
+-- Criação da tabela Cameras
+CREATE TABLE [dbo].[Cameras]
+(
+	[CodCamera] INT NOT NULL PRIMARY KEY IDENTITY, 
+    [Ip] VARCHAR(25) NOT NULL unique,
+	[Local] VARCHAR(60) NOT NULL, 
+	[Audio] VARCHAR(25) NOT NULL, 
+	[Situacao] VARCHAR(25)NOT NULL,
+	
+);
+-- Criação da tabela Ramal
+CREATE TABLE [dbo].[Ramais]
+(
+    [CodRamal] INT NOT NULL PRIMARY KEY IDENTITY, 
+    [Ramal] VARCHAR(25) NOT NULL,
+    [Linha] VARCHAR(25) NOT NULL, 
+    [CodSetor] INT NOT NULL, 
+    [Nome] VARCHAR(100) NULL,
+    [Fone] VARCHAR(25) NULL,
+    CONSTRAINT FK_Ramais_Setores FOREIGN KEY (CodSetor) REFERENCES Setores(Id)
+);
+
+erro a salvar(baixar) algumas fotos
+
+       public override void CarregaDGV()
+       {
+           if (oUsuario.Perfil == "Admin" || oUsuario.Perfil == "Chefe")
+           {
+               if (cmbStatus2.Text == "")
+               {
+                   List<OrdemDeServico> ordens2 = aCTLOS.ListarOrdensDeServico(null, null, "Aberto");
+                   PreencherDataGridView(ordens2);
+               }
+               else
+               {
+                   List<OrdemDeServico> ordens = aCTLOS.ListarOrdensDeServico(null, null, cmbStatus2.Text);
+                   PreencherDataGridView(ordens);
+               }
+           }
+           else// Usado para não adminstradores nem chefe, setorizado.
+           {
+               int setor = oUsuario.Setor.Id;
+               lblSetor.Visible = true;
+               if (cmbStatus2.Text == "")
+               {
+                   List<OrdemDeServico> ordens2 = aCTLOS.ListarOrdensDeServicoPorSetor(null, null, "Aberto", setor);
+                   PreencherDataGridView(ordens2);
+
+               }
+               else
+               {
+                   List<OrdemDeServico> ordens = aCTLOS.ListarOrdensDeServicoPorSetor(null, null, cmbStatus2.Text, setor);
+                   PreencherDataGridView(ordens);
+               }
+               lblSetor.Text = "RESULTADOS PARA O SETOR: " + oUsuario.Setor.Setor;
+           }
+
+       }

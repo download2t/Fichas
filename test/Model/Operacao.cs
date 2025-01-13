@@ -6,11 +6,41 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions; // biblioteca para usar o Regex
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
+using System.Windows.Forms;
+using System.Data.SqlClient;
+using System.Drawing.Printing;
+using System.Drawing;
 
 namespace test.Model
 {
     public class Operacao
     {
+
+        public void HandleException(string message, Exception ex)
+        {
+            Console.WriteLine($"{message}: {ex.Message}");
+
+            // Exibir uma mensagem de erro para o usuário (você pode usar um MessageBox ou uma caixa de diálogo)
+            MessageBox.Show($"Ocorreu um erro: {message}\nDetalhes do erro: {ex.Message}", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
+        public bool IsForeignKeyViolation(SqlException ex)
+        {
+            foreach (SqlError error in ex.Errors)
+            {
+                if (error.Number == 547)
+                {
+                    // Número de erro 547 é comum para violações de chave estrangeira no SQL Server
+                    return true;
+                }
+            }
+            return false;
+        }
+        public static void ValidarValorKeyPress(TextBox textBox, KeyPressEventArgs e)
+        {
+            e.Handled = !char.IsDigit(e.KeyChar) && e.KeyChar != Convert.ToChar(Keys.Back);
+        }
+
         public static bool IsTelefone(string telefone)
         {
             // Utilizamos uma expressão regular que aceita os formatos mencionados
@@ -137,22 +167,22 @@ namespace test.Model
             }
         }
 
-public static string FormatarDocumento(string documento)
-{
-    // Remova todos os caracteres não numéricos
-    string documentoLimpo = new string(documento.Where(char.IsDigit).ToArray());
+        public static string FormatarDocumento(string documento)
+        {
+            // Remova todos os caracteres não numéricos
+            string documentoLimpo = new string(documento.Where(char.IsDigit).ToArray());
 
-    
-    if (documentoLimpo.Length == 11) // CPF
-    {
-        return string.Format("{0:000\\.000\\.000\\-00}", long.Parse(documentoLimpo));
-    }
-    else if (documentoLimpo.Length == 14) // CNPJ
-    {
-        return string.Format("{0:00\\.000\\.000\\/0000\\-00}", long.Parse(documentoLimpo));
-    }
-    return documento; // Retorna o documento original se não for CPF nem CNPJ
-}
+
+            if (documentoLimpo.Length == 11) // CPF
+            {
+                return string.Format("{0:000\\.000\\.000\\-00}", long.Parse(documentoLimpo));
+            }
+            else if (documentoLimpo.Length == 14) // CNPJ
+            {
+                return string.Format("{0:00\\.000\\.000\\/0000\\-00}", long.Parse(documentoLimpo));
+            }
+            return documento; // Retorna o documento original se não for CPF nem CNPJ
+        }
 
 
         public static string FormatarCep(string cep)
@@ -163,28 +193,190 @@ public static string FormatarDocumento(string documento)
             }
             return cep;
         }
+        public static string FormatarTelefone2(string telefone)
+        {
+            if (string.IsNullOrEmpty(telefone))
+                return string.Empty;
+
+            // Remove todos os caracteres não numéricos
+            var numeros = new string(telefone.Where(char.IsDigit).ToArray());
+
+            // Verifica se o número contém o código do país, DDD e número
+            if (numeros.Length == 12) // +55 (DDD) 0000-0000
+            {
+                return $"+55 ({numeros.Substring(2, 2)}) {numeros.Substring(4, 4)}-{numeros.Substring(8, 4)}";
+            }
+            else if (numeros.Length == 11) // (DDD) 0000-0000 (sem código do país)
+            {
+                return $"({numeros.Substring(0, 2)}) {numeros.Substring(2, 4)}-{numeros.Substring(6, 4)}";
+            }
+            else if (numeros.Length == 8) // 0000-0000 (sem DDD e código do país)
+            {
+                return $"{numeros.Substring(0, 4)}-{numeros.Substring(4, 4)}";
+            }
+            else
+            {
+                // Retorna o número como está se não corresponder aos comprimentos esperados
+                return telefone;
+            }
+        }
+
 
         public static string FormatarTelefone(string telefone)
         {
             // Remove espaços em branco e traços
             telefone = telefone.Replace(" ", "").Replace("-", "");
 
-            if (telefone.Length == 10)
+            try
             {
-                return string.Format("({0:00}) {1:0000}-{2:0000}", long.Parse(telefone.Substring(0, 2)), long.Parse(telefone.Substring(2, 4)), long.Parse(telefone.Substring(6, 4)));
+                if (telefone.Length == 11)
+                {
+                    return string.Format("({0}) {1}-{2}",
+                        telefone.Substring(0, 2),
+                        telefone.Substring(2, 5),
+                        telefone.Substring(7, 4));
+                }
+                else if (telefone.Length == 10)
+                {
+                    return string.Format("({0}) {1}-{2}",
+                        telefone.Substring(0, 2),
+                        telefone.Substring(2, 4),
+                        telefone.Substring(6, 4));
+                }
+                else if (telefone.Length == 9)
+                {
+                    return string.Format("{0}-{1}",
+                        telefone.Substring(0, 5),
+                        telefone.Substring(5, 4));
+                }
+                else if (telefone.Length == 8)
+                {
+                    return string.Format("{0}-{1}",
+                        telefone.Substring(0, 4),
+                        telefone.Substring(4, 4));
+                }
             }
-            else if (telefone.Length == 11)
+            catch (FormatException)
             {
-                return string.Format("({0:00}) {1:0000}-{2:0000}", long.Parse(telefone.Substring(0, 2)), long.Parse(telefone.Substring(2, 4)), long.Parse(telefone.Substring(6, 4)));
+                return "Formato inválido";
             }
-            else if (telefone.Length == 12)
+            catch (Exception ex)
             {
-                return string.Format("({0:00}) {1:0000}-{2:0000}", long.Parse(telefone.Substring(0, 2)), long.Parse(telefone.Substring(3, 4)), long.Parse(telefone.Substring(7, 4)));
+                return "Erro ao formatar: " + ex.Message;
             }
-            else
+
+            return telefone;
+        }
+        public static string FormatStatus(char status)
+        {
+            switch (status)
             {
-                return telefone;
+                case 'E':
+                    return "Enviado";
+                case 'A':
+                    return "Agendado";
+                case 'N':
+                    return "Não Enviado";
+                default:
+                    return "Desconhecido";
             }
+        }
+
+        public static Form CriarFormFoto(Image foto)
+        {
+            Form formFoto = new Form
+            {
+                StartPosition = FormStartPosition.CenterScreen,
+                FormBorderStyle = FormBorderStyle.Sizable,
+                MaximizeBox = true,
+                MinimizeBox = true,
+                Size = foto.Size
+            };
+
+            // PictureBox para exibir a imagem
+            PictureBox pictureBox = new PictureBox
+            {
+                Dock = DockStyle.Fill,
+                Image = foto,
+                SizeMode = PictureBoxSizeMode.Zoom
+            };
+
+            // ToolStrip para os botões de ação
+            ToolStrip toolStrip = new ToolStrip();
+
+            // Botão para salvar a imagem
+            ToolStripButton salvarButton = new ToolStripButton("Salvar");
+            salvarButton.Click += (sender, e) =>
+            {
+                try
+                {
+                    using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+                    {
+                        saveFileDialog.Filter = "Arquivos de Imagem|*.jpg;*.jpeg;*.png;*.bmp";
+                        if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                        {
+                            // Salvar a imagem com formato padrão
+                            pictureBox.Image.Save(saveFileDialog.FileName);
+                        }
+                    }
+                }
+                catch (System.Runtime.InteropServices.ExternalException ex)
+                {
+                    MessageBox.Show($"Erro ao salvar a imagem: {ex.Message}", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ocorreu um erro inesperado: {ex.Message}", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            };
+            toolStrip.Items.Add(salvarButton);
+
+            // Botão para imprimir a imagem
+            ToolStripButton imprimirButton = new ToolStripButton("Imprimir");
+            imprimirButton.Click += (sender, e) =>
+            {
+                try
+                {
+                    PrintDocument printDocument = new PrintDocument();
+                    printDocument.PrintPage += (s, ev) =>
+                    {
+                        if (pictureBox.Image != null)
+                        {
+                            ev.Graphics.DrawImage(pictureBox.Image, 0, 0);
+                        }
+                        else
+                        {
+                            ev.Graphics.DrawString("Nenhuma imagem para imprimir.", new Font("Arial", 12), Brushes.Black, new PointF(100, 100));
+                        }
+                    };
+
+                    PrintDialog printDialog = new PrintDialog
+                    {
+                        Document = printDocument
+                    };
+                    if (printDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        printDocument.Print();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Erro ao imprimir a imagem: {ex.Message}", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            };
+            toolStrip.Items.Add(imprimirButton);
+
+            // Adicionando controles ao formulário
+            formFoto.Controls.Add(pictureBox);
+            formFoto.Controls.Add(toolStrip);
+
+            // Posicionamento do ToolStrip
+            toolStrip.Dock = DockStyle.Top;
+
+            // Lidando com o evento de duplo clique para fechar o formulário
+            formFoto.MouseDoubleClick += (sender, e) => formFoto.Close();
+
+            return formFoto;
         }
 
 

@@ -5,20 +5,21 @@ using test.Controllers;
 using static test.Views.FrmLogin;
 using test.Views.Consultas;
 using System.Data.SqlClient;
+using test.Model;
 
 namespace test.Views.Cadastros
 {
-    public partial class FrmCadastroFichas : FrmPai
+    public partial class FrmCadastroFichas :FrmCadastro
     {
         private Fichas aFicha;
-        private ClientesController clientesController;
+        private CTLClientes aCTLClientes;
         private FrmConsultaClientes oFormConsultaClientes;
 
         public FrmCadastroFichas()
         {
             InitializeComponent();
             aFicha = new Fichas();
-            clientesController = new ClientesController();
+            aCTLClientes = new CTLClientes();
         }
 
         public override void ConhecaObj(object obj)
@@ -86,23 +87,28 @@ namespace test.Views.Cadastros
                 base.Salvar();
                 aFicha.Descricao = txtDescricao.Text;
                 aFicha.DataCriacao = dtData.Value;
-                if (int.TryParse(txtCodCliente.Text, out int codCliente))
+                if (int.TryParse(txtCodCliente.Text, out int codCliente) && codCliente > 0)
                 {
                     aFicha.Clientes.Id = codCliente;
+                }
+                else
+                {
+                    MessageBox.Show("Código inválido. Certifique-se de inserir um número inteiro válido maior que zero.");
+
                 }
                 if (int.TryParse(txtCodUsuario.Text, out int codUsuario))
                 {
                     aFicha.Usuarios.Id = codUsuario;
                 }
                 // Use o controlador de fichas para salvar ou atualizar a ficha
-                FichasController fichasController = new FichasController();
+                CTLFichas aCTLFichas = new CTLFichas();
                 if (aFicha.Id == 0)
                 {
-                    fichasController.AdicionarFicha(aFicha);
+                    aCTLFichas.AdicionarFicha(aFicha);
                 }
                 else
                 {
-                    fichasController.AtualizarFicha(aFicha);
+                    aCTLFichas.AtualizarFicha(aFicha);
                 }
                 Close();
             }
@@ -139,12 +145,12 @@ namespace test.Views.Cadastros
                 consultaClientes.ShowDialog();
 
                 // Após o retorno do diálogo, você pode acessar os valores do cliente selecionado
-                int clienteIdSelecionado = consultaClientes.ClienteIdSelecionado;
-                string clienteNomeSelecionado = consultaClientes.ClienteNomeSelecionado;
+                int IdSelecionado = consultaClientes.IdSelecionado;
+                string NomeSelecionado = consultaClientes.NomeSelecionado;
 
                 // Agora, defina os valores nos campos do seu formulário de cadastro
-                txtCodCliente.Text = clienteIdSelecionado.ToString();
-                txtCliente.Text = clienteNomeSelecionado;
+                txtCodCliente.Text = IdSelecionado.ToString();
+                txtCliente.Text = NomeSelecionado;
             }
         }
 
@@ -155,9 +161,14 @@ namespace test.Views.Cadastros
             txtUsuario.Text = UserSession.User.Nome; 
             txtCodUsuario.Text = UserSession.User.Id.ToString();
         }
-
-        private void btnSalvar_Click(object sender, EventArgs e)
+        protected override void Verificar()
         {
+            if (string.IsNullOrEmpty(txtCodCliente.Text) || !int.TryParse(txtCodCliente.Text, out int codCliente) || codCliente <= 0)
+            {
+                MessageBox.Show("Por favor, insira um valor válido para o código do cliente.");
+                return;
+            }
+
             if (btnSalvar.Text == "Salvar")
             {
                 Salvar();
@@ -171,13 +182,14 @@ namespace test.Views.Cadastros
                 }
             }
         }
+
         private void ExcluirFicha()
         {
             if (aFicha != null)
             {
                 try
                 {
-                    FichasController fichaController = new FichasController();
+                    CTLFichas fichaController = new CTLFichas();
                     fichaController.ExcluirFicha(aFicha.Id);
 
                     // Feche o formulário após a exclusão
@@ -203,5 +215,44 @@ namespace test.Views.Cadastros
             }
         }
 
+        private void txtCodCliente_Leave(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtCodCliente.Text))
+            {
+                // Se o campo txtCodCliente estiver vazio, limpe também o campo txtCliente
+                txtCodCliente.Clear();
+                txtCliente.Clear();
+            }
+            else if (int.TryParse(txtCodCliente.Text, out int codCliente) && codCliente > 0)
+            {
+                // Se o código for um número inteiro válido e maior que zero, defina o valor do txtCliente
+                Clientes Valida = aCTLClientes.BuscarClientePorId(codCliente);
+                if (Valida == null)
+                {
+                    MessageBox.Show("Código inexistente.");
+                    txtCodCliente.Clear();
+                    txtCliente.Clear();
+                    txtCodCliente.Focus();
+                }
+                else
+                {
+                    txtCliente.Text = Valida.Nome;
+                }
+            }
+            else
+            {
+                // Se o código não for um número inteiro válido ou não for maior que zero, limpe ambos os campos
+                MessageBox.Show("Código inválido. Certifique-se de inserir um número inteiro válido maior que zero.");
+                txtCodCliente.Clear();
+                txtCliente.Clear();
+                txtCodCliente.Focus();
+            }
+        }
+
+
+        private void ValidarValorKeyPress(object sender, KeyPressEventArgs e)
+        {
+            Operacao.ValidarValorKeyPress((TextBox)sender, e);
+        }
     }
 }
