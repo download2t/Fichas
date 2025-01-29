@@ -8,8 +8,8 @@ namespace test.Data.Model
 {
     internal class Banco
     {     
-      //  private static string connectionString = @"Data Source=172.16.10.200;Initial Catalog=db_controle;Persist Security Info=True;User ID=sa;Password=macaco21";
-        private static string connectionString = @"Data Source=172.16.10.169;Initial Catalog=db_controle;Persist Security Info=True;User ID=sa;Password=SanmaMacaco,#21";
+      //  private static string connectionString = @"Data Source=172.16.2.2;Initial Catalog=db_controle;Persist Security Info=True;User ID=sa;Password=xxxxxx";
+        private static string connectionString = @"Data Source=172.16.2.2;Initial Catalog=db_controle;Persist Security Info=True;User ID=sa;Password=xxxxxx";
         public SqlConnection Abrir()
         {
             try
