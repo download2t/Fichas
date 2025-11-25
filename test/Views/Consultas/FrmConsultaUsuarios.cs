@@ -183,21 +183,28 @@ namespace test.Views.Consultas
         }
 
         private void PreencherUsuariosDataGridView(IEnumerable<Usuarios> usuarios)
-        {
+        {   
             dgv.Rows.Clear();
 
             foreach (var usuario in usuarios)
             {
-                dgv.Rows.Add(usuario.Id,
-                    usuario.Nome,
-                    usuario.Sobrenome,
-                    usuario.Email,
-                    usuario.Usuario,
-                    usuario.DataNascimento?.ToString() ?? "",
-                    usuario.Setor.Setor,
-                    usuario.Status,
-                    usuario.Perfil,
-                    usuario.DataCadastro?.ToString() ?? "");
+                // Protege contra propriedades nulas (ex.: usuario.Setor pode ser null)
+                string setorNome = usuario?.Setor?.Setor ?? "";
+                string dataNasc = usuario?.DataNascimento?.ToString() ?? "";
+                string dataCad = usuario?.DataCadastro?.ToString() ?? "";
+
+                dgv.Rows.Add(
+                    usuario?.Id ?? 0,
+                    usuario?.Nome ?? "",
+                    usuario?.Sobrenome ?? "",
+                    usuario?.Email ?? "",
+                    usuario?.Usuario ?? "",
+                    dataNasc,
+                    setorNome,
+                    usuario?.Status ?? "",
+                    usuario?.Perfil ?? "",
+                    dataCad
+                );
             }
         }
 
